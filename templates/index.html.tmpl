@@ -4,9 +4,18 @@
 </head>
 <body>
 <h1>Hello from Fly</h1>
-<h1>{{.Greeting}}</h1>
 {{ if .Region }}
 <h2>I'm running in the {{.Region}} region</h2>
 {{end}}
+
+    <form method="POST">
+        <label>username:</label><br />
+        <input type="text" name="username"><br />
+        <label>password:</label><br />
+        <input type="text" name="password"><br />
+        <label>email:</label><br />
+        <textarea name="email"></textarea><br />
+        <input type="submit">
+    </form>
 </body>
 </html>

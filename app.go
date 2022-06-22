@@ -24,7 +24,7 @@ func main() {
 
 	}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	{
 
 		db, err := sql.Open("pgx", os.Getenv("DATABASE_URL"))
 		if err != nil {
@@ -33,16 +33,54 @@ func main() {
 		}
 		defer db.Close()
 
-		var greeting string
-		err = db.QueryRow("select 'Hello, world!'").Scan(&greeting)
+		createStatement := `CREATE TABLE accounts (
+			user_id serial PRIMARY KEY,
+			username VARCHAR ( 50 ) UNIQUE NOT NULL,
+			password VARCHAR ( 50 ) NOT NULL,
+			email VARCHAR ( 255 ) UNIQUE NOT NULL,
+			created_on TIMESTAMP NOT NULL,
+				last_login TIMESTAMP 
+		)`
+
+		_, err = db.Exec(createStatement)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "QueryRow failed: %v\n", err)
-			os.Exit(1)
+			fmt.Fprintf(os.Stderr, "createStatement failed: %v\n", err)
 		}
 
+	}
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+
 		data := map[string]string{
-			"Region":   os.Getenv("FLY_REGION"),
-			"Greeting": greeting,
+			"Region": os.Getenv("FLY_REGION"),
+		}
+		if r.Method != http.MethodPost {
+			t.ExecuteTemplate(w, "index.html.tmpl", data)
+			return
+		}
+
+		details := map[string]string{
+			"username": r.FormValue("username"),
+			"password": r.FormValue("password"),
+			"email":    r.FormValue("email"),
+		}
+
+		db, err := sql.Open("pgx", os.Getenv("DATABASE_URL"))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+			os.Exit(1)
+		}
+		defer db.Close()
+
+		sqlStatement := `insert into Accounts (username, password, email, created_on) values ($1, $2, $3, NOW())`
+		_, err = db.Exec(
+			sqlStatement,
+			details["username"],
+			details["password"],
+			details["email"],
+		)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Exec failed: %v\n", err)
 		}
 		t.ExecuteTemplate(w, "index.html.tmpl", data)
 	})
